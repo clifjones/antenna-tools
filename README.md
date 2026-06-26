@@ -54,11 +54,18 @@ Build and sign in Android Studio or Xcode, then publish to the stores.
 
 ## GitHub Pages
 
-Push to GitHub and enable Pages with source **Deploy from branch** → branch `main` → folder `/src`.
+This repo includes a GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) that deploys the `src/` folder on every push to `main`.
 
-Your install URL will be:
+**One-time setup:**
+
+1. Push to GitHub.
+2. In the repo: **Settings → Pages → Build and deployment → Source** → select **GitHub Actions**.
+
+After the first successful workflow run, the app will be live at:
 
 `https://<user>.github.io/antenna-tools/linked_dipole_designer.html`
+
+Install it on your phone from that URL (Add to Home Screen / Install app).
 
 ---
 
