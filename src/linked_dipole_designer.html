@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HF Linked Dipole Wire Antenna Designer</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #161d27;
+    --panel2: #1c2530;
+    --border: #2a3542;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --accent: #4fb3ff;
+    --accent2: #ffb454;
+    --good: #5fd97a;
+    --warn: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 20px 18px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 10px; color: var(--accent); }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13.5px; }
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 18px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .panel + .panel { margin-top: 16px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input[type="number"], input[type="text"], select {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 14px;
+  }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  .row .unit { flex: 0 0 auto; padding-bottom: 9px; color: var(--muted); font-size: 13px; min-width: 18px; }
+  .help { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .help strong { color: var(--accent2); }
+  .warn-text { font-size: 12.5px; color: var(--warn); margin-top: 6px; display: none; }
+
+  .freqgrid { display: grid; grid-template-columns: 90px 1fr 150px; gap: 6px 10px; align-items: center; margin-top: 6px; }
+  .freqgrid .lbl { font-size: 13px; color: var(--text); }
+  .freqgrid input { width: 100%; padding: 6px 8px; font-size: 13px; }
+  .freqgrid select { padding: 6px 6px; font-size: 12px; width: 100%; }
+
+  table.results { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.results th, table.results td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+  table.results th:first-child, table.results td:first-child { text-align: left; }
+  table.results th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  table.results tr:last-child td { border-bottom: none; }
+  .band-tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11.5px; background: var(--panel2); border: 1px solid var(--border); color: var(--accent2); }
+
+  .stat-row { display: flex; gap: 18px; flex-wrap: wrap; margin: 4px 0 14px; font-size: 13px; }
+  .stat { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+  .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .stat .v { font-size: 16px; font-weight: 600; color: var(--accent); }
+
+  svg#diagram { width: 100%; height: auto; display: block; background: var(--panel2); border-radius: 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .actions button {
+    padding: 9px 16px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13.5px;
+  }
+  .actions button:hover { border-color: var(--accent); }
+
+  footer { margin-top: 26px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 12px; }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .panel { border: 1px solid #ccc; background: #fff; }
+    .no-print { display: none !important; }
+    .grid { grid-template-columns: 1fr; }
+    svg#diagram { background: #fff; }
+    h2 { color: #000; }
+    table.results th { color: #444; }
+    .band-tag { background: #fff; border-color: #999; color: #000; }
+    .legend { color: #333; }
+    .stat { background: #fff; border-color: #999; }
+    .stat .v { color: #000; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>HF Linked Dipole Wire Antenna Designer</h1>
+  <p class="sub">Cut-length calculator for multi-band linked dipoles &mdash; flat-top or inverted-V, with real support-height geometry. Use <strong>Ctrl/Cmd+P</strong> to print or save as PDF.</p>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Bands &amp; Frequencies</h2>
+        <label for="numBands">Number of bands (sections per leg)</label>
+        <select id="numBands">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <div class="help">Center section uses the <strong>highest</strong> frequency; each added band extends both legs outward toward lower frequencies &mdash; same wiring order as the real antenna.</div>
+
+        <div class="freqgrid" id="freqgrid"></div>
+        <div class="warn-text" id="freqWarn">Frequencies must strictly decrease from highest to lowest.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Support Geometry</h2>
+        <label for="unit">Display / input units</label>
+        <select id="unit">
+          <option value="ftin" selected>Feet + inches</option>
+          <option value="ft">Decimal feet</option>
+          <option value="in">Decimal inches</option>
+          <option value="m">Meters</option>
+        </select>
+
+        <label>Center support height</label>
+        <div class="row">
+          <div><input type="number" id="centHt" value="20" step="0.5" min="0"></div>
+          <div class="unit" id="centHtUnit">ft</div>
+        </div>
+
+        <label>End support height (stake/tree/ground)</label>
+        <div class="row">
+          <div><input type="number" id="endHt" value="6" step="0.5" min="0"></div>
+          <div class="unit" id="endHtUnit">ft</div>
+        </div>
+
+        <label><input type="checkbox" id="ropeEnable" style="width:auto;vertical-align:middle;margin-right:6px;">Add end rope / extender</label>
+        <div class="row" id="ropeWrap" style="display:none;">
+          <div><input type="number" id="ropeLen" value="10" step="0.5" min="0"></div>
+          <div class="unit" id="ropeLenUnit">ft</div>
+        </div>
+        <div class="help">Center and end support heights, plus any non-radiating rope past the wire end, determine the actual droop angle &mdash; the tool solves for it, you don't need to guess.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Wire Type / Velocity Factor</h2>
+        <label for="vfactor">Conductor</label>
+        <select id="vfactor">
+          <option value="92">92% &mdash; wire, thick insulation</option>
+          <option value="93">93% &mdash; wire, insulated</option>
+          <option value="94">94% &mdash; wire, thin insulation</option>
+          <option value="95" selected>95% &mdash; wire, un-insulated (standard)</option>
+          <option value="96">96% &mdash; thick wire, un-insulated</option>
+          <option value="97">97% &mdash; tubing</option>
+        </select>
+        <div class="help">The inverted-V apex-angle correction below is computed automatically from your support geometry &mdash; it isn't a separate manual fudge factor.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Results</h2>
+        <div class="stat-row">
+          <div class="stat"><div class="k">Total length</div><div class="v" id="statTotal">&mdash;</div></div>
+          <div class="stat"><div class="k">Apex half-angle</div><div class="v" id="statAngle">&mdash;</div></div>
+          <div class="stat"><div class="k">Wire-end height</div><div class="v" id="statEndHt">&mdash;</div></div>
+          <div class="stat"><div class="k">Ground footprint (per leg)</div><div class="v" id="statFoot">&mdash;</div></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="results" id="resultsTable">
+            <thead>
+              <tr><th>Section</th><th>Freq (kHz)</th><th>Leg Length</th><th>This Section</th></tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="actions no-print">
+          <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+          <button onclick="exportCSV()">⬇️ Export CSV</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Wire Diagram</h2>
+        <svg id="diagram" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Build Notes</h2>
+        <ul style="margin:0; padding-left: 20px; font-size: 13.5px; color: var(--muted);">
+          <li>Cut each leg long by a few inches initially and trim symmetrically while checking SWR/resonance with an antenna analyzer &mdash; these are calculated starting points, not exact tuned lengths.</li>
+          <li>The apex angle and wire-end height are <strong>computed</strong> from your two support heights (and rope length, if used) &mdash; if your center support is much taller than the ends, the antenna droops more and the correction factor shifts accordingly.</li>
+          <li>Links should be placed at the calculated section boundaries, using low-loss connectors (rings, snap clips, or bullet connectors).</li>
+          <li>If your two legs use different end-support heights or rope lengths, run each leg through the tool separately.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    The core calculation &mdash; quarter-wavelength from the speed of light with an explicit velocity factor, plus an apex-angle correction table for inverted-V geometry solved iteratively from real support heights &mdash; Always confirm final lengths with an antenna analyzer before trusting the antenna in the field. &mdash; KD4CTJ
+  </footer>
+</div>
+
+<script>
+const SPEED_OF_LIGHT = 299792458; // m/s
+const M_TO_FT = 3.280839895;
+const M_TO_IN = 39.37007874;
+
+// Apex half-angle (deg, 90=flat-top) -> length correction factor.
+// Same table used by the sotamaps.org designer.
+const INV_VEE_CORR = [
+  [15, 0.91], [20, 0.917], [25, 0.924], [30, 0.9305], [35, 0.937],
+  [40, 0.944], [45, 0.9505], [50, 0.957], [55, 0.964], [60, 0.9705],
+  [65, 0.9775], [70, 0.984], [75, 0.99], [80, 0.9943], [85, 0.9975], [90, 1]
+];
+
+// Per-band CW / midband(general) / SSB quick-fill frequencies, kHz.
+const BAND_PRESETS = {
+  "160m": { cw: 1824, mb: 1860, ssb: 1880 },
+  "80m":  { cw: 3550, mb: 3650, ssb: 3750 },
+  "60m":  { cw: 5260, mb: 5350, ssb: 5400 },
+  "40m":  { cw: 7035, mb: 7100, ssb: 7150 },
+  "30m":  { cw: 10120, mb: 10135, ssb: 10145 },
+  "20m":  { cw: 14040, mb: 14175, ssb: 14250 },
+  "17m":  { cw: 18080, mb: 18118, ssb: 18140 },
+  "15m":  { cw: 21040, mb: 21225, ssb: 21300 },
+  "12m":  { cw: 24905, mb: 24940, ssb: 24960 },
+  "10m":  { cw: 28050, mb: 28300, ssb: 28600 },
+  "6m":   { cw: 50050, mb: 50200, ssb: 50300 }
+};
+
+const SECTION_COLORS = ["#4fb3ff","#ffb454","#5fd97a","#ff6b6b","#c792ea","#7fdbca"];
+const ROPE_COLOR = "#c9a86b";
+
+// Geometry (flat-top vs inverted-V) is now derived automatically from
+// center/end support heights — no manual mode toggle needed.
+
+// ---------- Unit conversion helpers (canonical storage = meters) ----------
+function toMeters(val, unit) {
+  if (unit === 'm') return val;
+  if (unit === 'ft') return val / M_TO_FT;
+  if (unit === 'in') return val / M_TO_IN;
+  if (unit === 'ftin') return val / M_TO_FT; // ftin inputs are entered as decimal feet in the box
+  return val;
+}
+function fromMeters(m, unit) {
+  if (unit === 'm') return m;
+  if (unit === 'ft' || unit === 'ftin') return m * M_TO_FT;
+  if (unit === 'in') return m * M_TO_IN;
+  return m;
+}
+function unitLabel(unit) {
+  if (unit === 'm') return 'm';
+  if (unit === 'ft') return 'ft';
+  if (unit === 'in') return 'in';
+  return 'ft'; // ftin: box is feet, formatted output will show ft+in
+}
+function formatMeters(m) {
+  const unit = document.getElementById('unit').value;
+  if (m == null || isNaN(m)) return '\u2014';
+  if (unit === 'm') return m.toFixed(2) + ' m';
+  if (unit === 'ft') return (m * M_TO_FT).toFixed(2) + "'";
+  if (unit === 'in') return (m * M_TO_IN).toFixed(1) + '"';
+  // feet + inches, rounded to nearest 1/8"
+  let totalIn = m * M_TO_IN;
+  let ft = Math.floor(totalIn / 12);
+  let inch = totalIn - ft * 12;
+  inch = Math.round(inch * 8) / 8;
+  if (inch >= 12) { ft += 1; inch -= 12; }
+  const whole = Math.floor(inch);
+  const frac = inch - whole;
+  const fracMap = {0:'',0.125:'\u215b',0.25:'\u00bc',0.375:'\u215c',0.5:'\u00bd',0.625:'\u215d',0.75:'\u00be',0.875:'\u215e'};
+  const fracStr = fracMap[Math.round(frac*1000)/1000] !== undefined ? fracMap[Math.round(frac*1000)/1000] : '';
+  return `${ft}' ${whole}${fracStr}"`;
+}
+
+// ---------- Build frequency input rows ----------
+// First section (highest freq) is always "Center"; last section (lowest freq)
+// is always "Outer", regardless of how many bands are selected in between.
+function sectionLabel(i, n) {
+  if (i === 0) return "Center";
+  if (i === n - 1) return "Outer";
+  return "Ext #" + i;
+}
+const defaultFreqsByCount = {
+  1: [14175],
+  2: [28300, 7100],
+  3: [28300, 14175, 7100],
+  4: [28300, 21225, 14175, 7100],
+  5: [28300, 24940, 21225, 14175, 7100],
+  6: [28300, 24940, 21225, 18118, 14175, 7100]
+};
+
+function buildFreqGrid() {
+  const n = parseInt(document.getElementById('numBands').value);
+  const grid = document.getElementById('freqgrid');
+  grid.innerHTML = '';
+  const defaults = defaultFreqsByCount[n];
+  const bandNames = Object.keys(BAND_PRESETS);
+  for (let i = 0; i < n; i++) {
+    const color = SECTION_COLORS[i % SECTION_COLORS.length];
+    const row = document.createElement('div');
+    row.className = 'lbl';
+    row.innerHTML = `<span class="swatch" style="background:${color}"></span>${sectionLabel(i, n)}`;
+    grid.appendChild(row);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = 'freq_' + i;
+    input.value = defaults[i];
+    input.step = 1;
+    input.addEventListener('input', recalc);
+    grid.appendChild(input);
+
+    const presetSel = document.createElement('select');
+    presetSel.id = 'preset_' + i;
+    presetSel.innerHTML = '<option value="">kHz (or pick band)</option>' +
+      bandNames.map(b => `<option value="${b}">${b}</option>`).join('');
+    presetSel.addEventListener('change', () => {
+      const band = presetSel.value;
+      if (band && BAND_PRESETS[band]) {
+        document.getElementById('freq_' + i).value = BAND_PRESETS[band].mb; // midband/general as a sane default
+        recalc();
+      }
+    });
+    grid.appendChild(presetSel);
+  }
+}
+
+document.getElementById('numBands').addEventListener('change', () => { buildFreqGrid(); recalc(); });
+
+// Canonical store: support-geometry lengths are always kept here in meters.
+// The input boxes are just a *display* of these values in the chosen unit.
+const geomMeters = { centHt: toMeters(20, 'ft'), endHt: toMeters(6, 'ft'), ropeLen: toMeters(10, 'ft') };
+
+function refreshGeomInputsFromCanonical() {
+  const unit = document.getElementById('unit').value;
+  const lbl = unitLabel(unit);
+  ['centHt','endHt','ropeLen'].forEach(id => {
+    const el = document.getElementById(id);
+    const displayVal = fromMeters(geomMeters[id], unit);
+    el.value = Math.round(displayVal * 1000) / 1000;
+  });
+  document.getElementById('centHtUnit').textContent = lbl;
+  document.getElementById('endHtUnit').textContent = lbl;
+  document.getElementById('ropeLenUnit').textContent = lbl;
+}
+
+document.getElementById('unit').addEventListener('change', () => {
+  refreshGeomInputsFromCanonical();
+  recalc();
+});
+
+['centHt','endHt','ropeLen'].forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    const unit = document.getElementById('unit').value;
+    geomMeters[id] = toMeters(parseFloat(e.target.value) || 0, unit);
+    recalc();
+  });
+});
+
+document.getElementById('ropeEnable').addEventListener('change', () => {
+  document.getElementById('ropeWrap').style.display = document.getElementById('ropeEnable').checked ? 'flex' : 'none';
+  recalc();
+});
+document.getElementById('vfactor').addEventListener('change', recalc);
+
+// ---------- Core calculation, ported from the real apex-angle solver ----------
+function eqTol(a, b) { return Math.abs(a - b) < 1e-6; }
+
+function correctionForAngle(angleDeg) {
+  // angleDeg is the apex HALF angle (90 = flat-top, smaller = steeper V).
+  for (let i = INV_VEE_CORR.length - 1; i >= 0; i--) {
+    const [deg, factor] = INV_VEE_CORR[i];
+    if (angleDeg <= deg && angleDeg >= deg - 5) {
+      const prevFactor = i > 0 ? INV_VEE_CORR[i - 1][1] : factor;
+      const rangeSpan = factor - prevFactor;
+      return factor - rangeSpan * (deg - angleDeg) / 5;
+    }
+  }
+  return angleDeg >= 90 ? 1 : INV_VEE_CORR[0][1];
+}
+
+function recalc() {
+  const n = parseInt(document.getElementById('numBands').value);
+  const freqs = [];
+  for (let i = 0; i < n; i++) freqs.push(parseFloat(document.getElementById('freq_' + i).value) || 0);
+
+  const warnEl = document.getElementById('freqWarn');
+  let badOrder = false;
+  for (let i = 1; i < freqs.length; i++) if (freqs[i] >= freqs[i - 1]) badOrder = true;
+  if (freqs.some(f => f < 1800)) badOrder = true;
+  warnEl.style.display = badOrder ? 'block' : 'none';
+
+  const vfPct = parseFloat(document.getElementById('vfactor').value) / 100;
+  const centHtM = geomMeters.centHt;
+  const endHtM = geomMeters.endHt;
+  const ropeOn = document.getElementById('ropeEnable').checked;
+  const ropeM = ropeOn ? geomMeters.ropeLen : 0;
+
+  const heightDiff = centHtM - endHtM; // D
+  const quarterWaveBase = SPEED_OF_LIGHT * vfPct / 4000; // meters*kHz -> meters when divided by kHz
+
+  if (badOrder || freqs.some(f => !f)) {
+    document.getElementById('resultsBody').innerHTML = '';
+    document.getElementById('statTotal').textContent = '\u2014';
+    document.getElementById('statAngle').textContent = '\u2014';
+    document.getElementById('statEndHt').textContent = '\u2014';
+    document.getElementById('statFoot').textContent = '\u2014';
+    drawDiagram([], 0, 90, centHtM, endHtM, 0);
+    return;
+  }
+
+  const highestFreq = freqs[0];
+  const lowestFreq = freqs[freqs.length - 1];
+
+  // Iterative solve: leg length (k) depends on correction factor (A),
+  // which depends on apex angle (v), which depends on leg length + rope (since
+  // it's derived from support-height geometry). Converge like the source does.
+  let k = quarterWaveBase / lowestFreq; // initial guess, uncorrected
+  let angleDeg = 90;
+  let correction = 1;
+  if (heightDiff === 0) {
+    angleDeg = 90;
+    correction = 1;
+  } else {
+    let prevK = 0;
+    let iterations = 0;
+    do {
+      iterations++;
+      prevK = k;
+      const ratio = heightDiff / (k + ropeM);
+      const clampedRatio = Math.max(-1, Math.min(1, ratio));
+      const angleRad = Math.asin(clampedRatio);
+      angleDeg = 90 - (angleRad / Math.PI) * 180;
+      correction = correctionForAngle(angleDeg);
+      k = (quarterWaveBase / lowestFreq) * correction;
+    } while (!eqTol(k, prevK) && iterations < 60);
+  }
+
+  const correctedQuarterWave = quarterWaveBase * correction;
+  const legLengths = freqs.map(f => correctedQuarterWave / f);
+  const totalLegLen = legLengths[legLengths.length - 1];
+  const wireEndHtM = heightDiff === 0 ? centHtM : centHtM - totalLegLen * Math.sin((90 - angleDeg) / 180 * Math.PI);
+
+  // Ground footprint via Pythagoras: hypotenuse = wire+rope length, vertical = height diff
+  const hyp = totalLegLen + ropeM;
+  const footLenM = Math.sqrt(Math.max(0, hyp * hyp - heightDiff * heightDiff));
+
+  // Build per-section results
+  const rows = [];
+  let prevLeg = 0;
+  for (let i = 0; i < freqs.length; i++) {
+    const leg = legLengths[i];
+    rows.push({
+      label: sectionLabel(i, freqs.length),
+      idx: i,
+      freq: freqs[i],
+      legLen: leg,
+      sectionLen: leg - prevLeg,
+      color: SECTION_COLORS[i % SECTION_COLORS.length]
+    });
+    prevLeg = leg;
+  }
+
+  // Render table
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="band-tag" style="border-color:${r.color};color:${r.color}">${r.label}</span></td>
+      <td>${r.freq.toFixed(0)}</td>
+      <td>${formatMeters(r.legLen)}</td>
+      <td><strong>${formatMeters(r.sectionLen)}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  if (ropeOn && ropeM > 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="band-tag" style="border-color:#8b98a5;color:#8b98a5">rope</span></td>
+      <td>&mdash;</td>
+      <td>${formatMeters(totalLegLen + ropeM)}</td>
+      <td><strong>${formatMeters(ropeM)}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('statTotal').textContent = formatMeters(totalLegLen * 2);
+  document.getElementById('statAngle').textContent = angleDeg.toFixed(1) + '\u00b0';
+  document.getElementById('statEndHt').textContent = formatMeters(wireEndHtM);
+  document.getElementById('statFoot').textContent = formatMeters(footLenM);
+
+  drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM);
+  window.__rows = rows;
+  window.__ropeM = ropeM;
+  window.__stats = { totalLegLen, angleDeg, wireEndHtM, footLenM };
+}
+
+// ---------- Diagram ----------
+function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
+  const svg = document.getElementById('diagram');
+  const legend = document.getElementById('legend');
+  legend.innerHTML = '';
+  const W = 900, H = 460;
+  const cx = W / 2;
+  const padX = 70, padTop = 50, padBottom = 50;
+  const usableHalfWidth = (W / 2) - padX;
+  const groundY = H - padBottom;
+  const usableHeight = groundY - padTop;
+
+  let svgParts = [];
+  svgParts.push(`<line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#5a6a78" stroke-width="2" stroke-dasharray="6 4"/>`);
+  svgParts.push(`<text x="25" y="${groundY+18}" fill="#8b98a5" font-size="11">ground</text>`);
+
+  if (!rows.length) { svg.innerHTML = svgParts.join('\n'); return; }
+
+  const wireLeg = rows[rows.length - 1].legLen;
+  const dropAngleRad = (90 - angleDeg) / 180 * Math.PI; // 0 = flat-top, increases as it droops toward vertical
+
+  // Real-world horizontal reach of the wire+rope from the feedpoint, in meters.
+  const reachM = wireLeg + ropeM;
+  const horizReachM = reachM * Math.cos(dropAngleRad);
+
+  // Single uniform scale (px/m) so the wire's real-world endpoint lands exactly on the
+  // end-support pole by construction, rather than two independently-fitted axes drifting apart.
+  const tallestPoleM = Math.max(centHtM, endHtM, 0.01);
+  const scaleFromWidth = usableHalfWidth / Math.max(horizReachM, 0.3);
+  const scaleFromHeight = usableHeight / (tallestPoleM * 1.15);
+  const scale = Math.min(scaleFromWidth, scaleFromHeight);
+
+  const feedY = groundY - centHtM * scale;
+  const endSupportTopY = groundY - endHtM * scale;
+
+  // --- Center pole (drawn once, at center) ---
+  svgParts.push(`<line x1="${cx}" y1="${groundY}" x2="${cx}" y2="${feedY}" stroke="#8a9aa8" stroke-width="3" stroke-linecap="round"/>`);
+  svgParts.push(`<circle cx="${cx}" cy="${feedY}" r="5" fill="#fff"/>`);
+  svgParts.push(`<text x="${cx}" y="${feedY-12}" fill="#e6edf3" font-size="12" text-anchor="middle">feedpoint</text>`);
+  svgParts.push(`<text x="${cx+10}" y="${(feedY+groundY)/2 - 7}" fill="#8b98a5" font-size="10" text-anchor="start">center pole</text>`);
+  svgParts.push(`<text x="${cx+10}" y="${(feedY+groundY)/2 + 9}" fill="#ffb454" font-size="12" font-weight="600" text-anchor="start">${formatMeters(centHtM)}</text>`);
+  svgParts.push(`<line x1="${cx-1}" y1="${feedY}" x2="${cx-1}" y2="${groundY}" stroke="#3a4856" stroke-width="1" stroke-dasharray="3 3"/>`);
+
+  let endSupportXAbs = null;
+  [-1, 1].forEach(dir => {
+    let xCum = cx, yCum = feedY;
+    rows.forEach((r, idx) => {
+      const cumLen = r.legLen;
+      const dx = cumLen * Math.cos(dropAngleRad) * scale;
+      const dy = cumLen * Math.sin(dropAngleRad) * scale;
+      const xNew = cx + dir * dx;
+      const yNew = feedY + dy;
+      svgParts.push(`<line x1="${xCum}" y1="${yCum}" x2="${xNew}" y2="${yNew}" stroke="${r.color}" stroke-width="4" stroke-linecap="round"/>`);
+      if (idx > 0) svgParts.push(`<circle cx="${xCum}" cy="${yCum}" r="4" fill="#0f1419" stroke="${r.color}" stroke-width="2"/>`);
+      xCum = xNew; yCum = yNew;
+    });
+    svgParts.push(`<circle cx="${xCum}" cy="${yCum}" r="4" fill="#fff"/>`);
+    if (ropeM > 0) {
+      const dxRope = (wireLeg + ropeM) * Math.cos(dropAngleRad) * scale;
+      const dyRope = (wireLeg + ropeM) * Math.sin(dropAngleRad) * scale;
+      const xRopeEnd = cx + dir * dxRope;
+      const yRopeEnd = feedY + dyRope;
+      svgParts.push(`<line x1="${xCum}" y1="${yCum}" x2="${xRopeEnd}" y2="${yRopeEnd}" stroke="${ROPE_COLOR}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>`);
+      xCum = xRopeEnd; yCum = yRopeEnd;
+    }
+    // End support pole: drawn from ground up to its real height, at the wire-end's x position
+    svgParts.push(`<line x1="${xCum}" y1="${groundY}" x2="${xCum}" y2="${endSupportTopY}" stroke="#8a9aa8" stroke-width="3" stroke-linecap="round"/>`);
+    svgParts.push(`<circle cx="${xCum}" cy="${endSupportTopY}" r="4" fill="#fff"/>`);
+    // Connect the wire end down/up to the actual support top (in case wire-end height != support height, e.g. with rope)
+    if (Math.abs(yCum - endSupportTopY) > 1) {
+      svgParts.push(`<line x1="${xCum}" y1="${yCum}" x2="${xCum}" y2="${endSupportTopY}" stroke="#5a6a78" stroke-width="1" stroke-dasharray="2 3"/>`);
+    }
+    if (dir === 1) endSupportXAbs = xCum;
+  });
+
+  // End support height label (shown once, on the right side)
+  if (endSupportXAbs !== null) {
+    svgParts.push(`<text x="${endSupportXAbs+10}" y="${(endSupportTopY+groundY)/2 - 7}" fill="#8b98a5" font-size="10" text-anchor="start">end support</text>`);
+    svgParts.push(`<text x="${endSupportXAbs+10}" y="${(endSupportTopY+groundY)/2 + 9}" fill="#ffb454" font-size="12" font-weight="600" text-anchor="start">${formatMeters(endHtM)}</text>`);
+  }
+
+  svg.innerHTML = svgParts.join('\n');
+
+  rows.forEach(r => {
+    const item = document.createElement('span');
+    item.innerHTML = `<span class="swatch" style="background:${r.color}"></span> ${r.freq.toFixed(0)} kHz section: ${formatMeters(r.sectionLen)}`;
+    legend.appendChild(item);
+  });
+  if (ropeM > 0) {
+    const item = document.createElement('span');
+    item.innerHTML = `<span class="swatch" style="background:${ROPE_COLOR}"></span> rope/extender (each end): ${formatMeters(ropeM)}`;
+    legend.appendChild(item);
+  }
+  legend.innerHTML += `<span><span class="swatch" style="background:#8a9aa8"></span> center pole: ${formatMeters(centHtM)} &nbsp;&middot;&nbsp; end support: ${formatMeters(endHtM)}</span>`;
+}
+
+function exportCSV() {
+  const rows = window.__rows || [];
+  const ropeM = window.__ropeM || 0;
+  const stats = window.__stats || {};
+  let csv = 'Section,Freq_kHz,Leg_Length,Section_Length\n';
+  rows.forEach(r => {
+    csv += `${r.label},${r.freq},"${formatMeters(r.legLen)}","${formatMeters(r.sectionLen)}"\n`;
+  });
+  if (ropeM > 0) {
+    csv += `rope,,"${formatMeters((rows.length?rows[rows.length-1].legLen:0) + ropeM)}","${formatMeters(ropeM)}"\n`;
+  }
+  csv += `\nTotal length,,"${formatMeters((stats.totalLegLen||0)*2)}",\n`;
+  csv += `Apex half-angle,,,"${(stats.angleDeg||0).toFixed(1)} deg"\n`;
+  csv += `Wire-end height,,"${formatMeters(stats.wireEndHtM||0)}",\n`;
+  csv += `Ground footprint (per leg),,"${formatMeters(stats.footLenM||0)}",\n`;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'linked_dipole_cutlist.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Init ----------
+buildFreqGrid();
+recalc();
+</script>
+</body>
+</html>
