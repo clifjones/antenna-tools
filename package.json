@@ -1,0 +1,21 @@
+{
+  "name": "antenna-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HF linked dipole antenna designer — installable web and native app",
+  "scripts": {
+    "serve": "npx --yes serve src -p 8080",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios",
+    "android:build": "npm run cap:sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

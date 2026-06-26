@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1419">
+<meta name="description" content="Cut-length calculator for multi-band linked dipoles — flat-top or inverted-V.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dipole Designer">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>HF Linked Dipole Wire Antenna Designer</title>
 <style>
   :root {
@@ -25,8 +34,9 @@
     font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 15px;
     line-height: 1.45;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .wrap { max-width: 1140px; margin: 0 auto; padding: 20px 18px 60px; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 20px 18px calc(60px + env(safe-area-inset-bottom)); }
   h1 { font-size: 22px; margin: 0 0 4px; }
   h2 { font-size: 16px; margin: 0 0 10px; color: var(--accent); }
   .sub { color: var(--muted); margin: 0 0 20px; font-size: 13.5px; }
@@ -96,7 +106,7 @@
 <body>
 <div class="wrap">
   <h1>HF Linked Dipole Wire Antenna Designer</h1>
-  <p class="sub">Cut-length calculator for multi-band linked dipoles &mdash; flat-top or inverted-V, with real support-height geometry. Use <strong>Ctrl/Cmd+P</strong> to print or save as PDF.</p>
+  <p class="sub">Cut-length calculator for multi-band linked dipoles &mdash; flat-top or inverted-V. Use <strong>Ctrl/Cmd+P</strong> to print or save as PDF.</p>
 
   <div class="grid">
     <div>
@@ -158,7 +168,7 @@
           <option value="96">96% &mdash; thick wire, un-insulated</option>
           <option value="97">97% &mdash; tubing</option>
         </select>
-        <div class="help">The inverted-V apex-angle correction below is computed automatically from your support geometry &mdash; it isn't a separate manual fudge factor.</div>
+        <div class="help">The inverted-V apex-angle correction below is computed automatically from your support geometry.</div>
       </div>
     </div>
 
@@ -204,7 +214,7 @@
   </div>
 
   <footer>
-    The core calculation &mdash; quarter-wavelength from the speed of light with an explicit velocity factor, plus an apex-angle correction table for inverted-V geometry solved iteratively from real support heights &mdash; Always confirm final lengths with an antenna analyzer before trusting the antenna in the field. &mdash; KD4CTJ
+    The core calculation &mdash; quarter-wavelength from the speed of light with an explicit velocity factor, plus an apex-angle correction table for inverted-V geometry &mdash; Always confirm final lengths with an antenna analyzer before trusting the antenna in the field. &mdash; KD4CTJ
   </footer>
 </div>
 
@@ -628,6 +638,10 @@ function exportCSV() {
 // ---------- Init ----------
 buildFreqGrid();
 recalc();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
