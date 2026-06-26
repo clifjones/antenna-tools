@@ -63,7 +63,7 @@ This repo includes a GitHub Actions workflow (`.github/workflows/deploy-pages.ym
 
 After the first successful workflow run, the app will be live at:
 
-`https://<user>.github.io/antenna-tools/linked_dipole_designer.html`
+`https://clifjones.github.io/antenna-tools/linked_dipole_designer.html`
 
 Install it on your phone from that URL (Add to Home Screen / Install app).
 

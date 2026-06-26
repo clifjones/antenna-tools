@@ -224,7 +224,6 @@ const M_TO_FT = 3.280839895;
 const M_TO_IN = 39.37007874;
 
 // Apex half-angle (deg, 90=flat-top) -> length correction factor.
-// Same table used by the sotamaps.org designer.
 const INV_VEE_CORR = [
   [15, 0.91], [20, 0.917], [25, 0.924], [30, 0.9305], [35, 0.937],
   [40, 0.944], [45, 0.9505], [50, 0.957], [55, 0.964], [60, 0.9705],
@@ -558,6 +557,9 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
   svgParts.push(`<text x="${cx+10}" y="${(feedY+groundY)/2 + 9}" fill="#ffb454" font-size="12" font-weight="600" text-anchor="start">${formatMeters(centHtM)}</text>`);
   svgParts.push(`<line x1="${cx-1}" y1="${feedY}" x2="${cx-1}" y2="${groundY}" stroke="#3a4856" stroke-width="1" stroke-dasharray="3 3"/>`);
 
+  // Perpendicular-offset unit vector (outer side of each arm): (dir·sinθ, −cosθ)
+  const segLabelOff = 14; // px from wire centre-line to label
+
   let endSupportXAbs = null;
   [-1, 1].forEach(dir => {
     let xCum = cx, yCum = feedY;
@@ -569,8 +571,15 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
       const yNew = feedY + dy;
       svgParts.push(`<line x1="${xCum}" y1="${yCum}" x2="${xNew}" y2="${yNew}" stroke="${r.color}" stroke-width="4" stroke-linecap="round"/>`);
       if (idx > 0) svgParts.push(`<circle cx="${xCum}" cy="${yCum}" r="4" fill="#0f1419" stroke="${r.color}" stroke-width="2"/>`);
+
+      // Section length label at segment midpoint, offset to outer side of arm
+      const smx = (xCum + xNew) / 2 + dir * Math.sin(dropAngleRad) * segLabelOff;
+      const smy = (yCum + yNew) / 2 - Math.cos(dropAngleRad) * segLabelOff;
+      svgParts.push(`<text x="${smx.toFixed(1)}" y="${smy.toFixed(1)}" fill="${r.color}" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle">${formatMeters(r.sectionLen)}</text>`);
+
       xCum = xNew; yCum = yNew;
     });
+
     svgParts.push(`<circle cx="${xCum}" cy="${yCum}" r="4" fill="#fff"/>`);
     if (ropeM > 0) {
       const dxRope = (wireLeg + ropeM) * Math.cos(dropAngleRad) * scale;
@@ -578,8 +587,21 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
       const xRopeEnd = cx + dir * dxRope;
       const yRopeEnd = feedY + dyRope;
       svgParts.push(`<line x1="${xCum}" y1="${yCum}" x2="${xRopeEnd}" y2="${yRopeEnd}" stroke="${ROPE_COLOR}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>`);
+
+      // Rope segment label
+      const rmx = (xCum + xRopeEnd) / 2 + dir * Math.sin(dropAngleRad) * segLabelOff;
+      const rmy = (yCum + yRopeEnd) / 2 - Math.cos(dropAngleRad) * segLabelOff;
+      svgParts.push(`<text x="${rmx.toFixed(1)}" y="${rmy.toFixed(1)}" fill="${ROPE_COLOR}" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle">${formatMeters(ropeM)}</text>`);
+
       xCum = xRopeEnd; yCum = yRopeEnd;
     }
+
+    // Total leg length label anchored at the end support (after optional rope)
+    const legTotalM = rows[rows.length - 1].legLen + ropeM;
+    const legLx = xCum + dir * Math.sin(dropAngleRad) * (segLabelOff + 4);
+    const legLy = yCum - Math.cos(dropAngleRad) * (segLabelOff + 4);
+    svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy - 6).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">leg total</text>`);
+    svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy + 7).toFixed(1)}" fill="#e6edf3" font-size="12" font-weight="600" text-anchor="middle">${formatMeters(legTotalM)}</text>`);
     // End support pole: drawn from ground up to its real height, at the wire-end's x position
     svgParts.push(`<line x1="${xCum}" y1="${groundY}" x2="${xCum}" y2="${endSupportTopY}" stroke="#8a9aa8" stroke-width="3" stroke-linecap="round"/>`);
     svgParts.push(`<circle cx="${xCum}" cy="${endSupportTopY}" r="4" fill="#fff"/>`);
@@ -594,6 +616,33 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
   if (endSupportXAbs !== null) {
     svgParts.push(`<text x="${endSupportXAbs+10}" y="${(endSupportTopY+groundY)/2 - 7}" fill="#8b98a5" font-size="10" text-anchor="start">end support</text>`);
     svgParts.push(`<text x="${endSupportXAbs+10}" y="${(endSupportTopY+groundY)/2 + 9}" fill="#ffb454" font-size="12" font-weight="600" text-anchor="start">${formatMeters(endHtM)}</text>`);
+  }
+
+  // --- Apex half-angle arc (right side of feedpoint: arc from wire arm to center pole) ---
+  const arcR = 38;
+  const wireArcX = cx + arcR * Math.cos(dropAngleRad);
+  const wireArcY = feedY + arcR * Math.sin(dropAngleRad);
+  const poleArcX = cx;
+  const poleArcY = feedY + arcR;
+  if (Math.hypot(wireArcX - poleArcX, wireArcY - poleArcY) > 2) {
+    svgParts.push(`<path d="M ${wireArcX.toFixed(1)} ${wireArcY.toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${poleArcX.toFixed(1)} ${poleArcY.toFixed(1)}" fill="none" stroke="#4fb3ff" stroke-width="1.5"/>`);
+  }
+  const midArcAngle = (dropAngleRad + Math.PI / 2) / 2;
+  const angLabelR = arcR + 18;
+  const angLabelX = cx + angLabelR * Math.cos(midArcAngle);
+  const angLabelY = feedY + angLabelR * Math.sin(midArcAngle);
+  svgParts.push(`<text x="${angLabelX.toFixed(1)}" y="${(angLabelY - 5).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">apex ½ angle</text>`);
+  svgParts.push(`<text x="${angLabelX.toFixed(1)}" y="${(angLabelY + 8).toFixed(1)}" fill="#4fb3ff" font-size="12" font-weight="600" text-anchor="middle">${angleDeg.toFixed(1)}°</text>`);
+
+  // --- Ground footprint dimension line (below ground, center to right end support) ---
+  if (endSupportXAbs !== null && footLenM > 0.01) {
+    const dimY = groundY + 28;
+    const midFootX = (cx + endSupportXAbs) / 2;
+    svgParts.push(`<line x1="${cx}" y1="${dimY}" x2="${endSupportXAbs}" y2="${dimY}" stroke="#8b98a5" stroke-width="1.5"/>`);
+    svgParts.push(`<line x1="${cx}" y1="${dimY - 5}" x2="${cx}" y2="${dimY + 5}" stroke="#8b98a5" stroke-width="1.5"/>`);
+    svgParts.push(`<line x1="${endSupportXAbs}" y1="${dimY - 5}" x2="${endSupportXAbs}" y2="${dimY + 5}" stroke="#8b98a5" stroke-width="1.5"/>`);
+    svgParts.push(`<text x="${midFootX.toFixed(1)}" y="${(dimY - 8).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">ground footprint/leg</text>`);
+    svgParts.push(`<text x="${midFootX.toFixed(1)}" y="${(dimY + 14).toFixed(1)}" fill="#ffb454" font-size="12" font-weight="600" text-anchor="middle">${formatMeters(footLenM)}</text>`);
   }
 
   svg.innerHTML = svgParts.join('\n');
