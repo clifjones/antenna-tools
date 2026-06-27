@@ -580,6 +580,13 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
       xCum = xNew; yCum = yNew;
     });
 
+    // Wire total label at the outer wire endpoint (sum of all wire sections, no rope)
+    const wireTotalM = rows[rows.length - 1].legLen;
+    const wtLx = xCum + dir * Math.sin(dropAngleRad) * (segLabelOff + 4);
+    const wtLy = yCum - Math.cos(dropAngleRad) * (segLabelOff + 4);
+    svgParts.push(`<text x="${wtLx.toFixed(1)}" y="${(wtLy - 6).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">wire total</text>`);
+    svgParts.push(`<text x="${wtLx.toFixed(1)}" y="${(wtLy + 7).toFixed(1)}" fill="#e6edf3" font-size="12" font-weight="600" text-anchor="middle">${formatMeters(wireTotalM)}</text>`);
+
     svgParts.push(`<circle cx="${xCum}" cy="${yCum}" r="4" fill="#fff"/>`);
     if (ropeM > 0) {
       const dxRope = (wireLeg + ropeM) * Math.cos(dropAngleRad) * scale;
@@ -594,14 +601,14 @@ function drawDiagram(rows, ropeM, angleDeg, centHtM, endHtM, footLenM) {
       svgParts.push(`<text x="${rmx.toFixed(1)}" y="${rmy.toFixed(1)}" fill="${ROPE_COLOR}" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle">${formatMeters(ropeM)}</text>`);
 
       xCum = xRopeEnd; yCum = yRopeEnd;
-    }
 
-    // Total leg length label anchored at the end support (after optional rope)
-    const legTotalM = rows[rows.length - 1].legLen + ropeM;
-    const legLx = xCum + dir * Math.sin(dropAngleRad) * (segLabelOff + 4);
-    const legLy = yCum - Math.cos(dropAngleRad) * (segLabelOff + 4);
-    svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy - 6).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">leg total</text>`);
-    svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy + 7).toFixed(1)}" fill="#e6edf3" font-size="12" font-weight="600" text-anchor="middle">${formatMeters(legTotalM)}</text>`);
+      // Leg total (wire + rope) anchored at end support — only shown when rope is present
+      const legTotalM = wireTotalM + ropeM;
+      const legLx = xCum + dir * Math.sin(dropAngleRad) * (segLabelOff + 4);
+      const legLy = yCum - Math.cos(dropAngleRad) * (segLabelOff + 4);
+      svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy - 6).toFixed(1)}" fill="#8b98a5" font-size="10" text-anchor="middle">leg total</text>`);
+      svgParts.push(`<text x="${legLx.toFixed(1)}" y="${(legLy + 7).toFixed(1)}" fill="#e6edf3" font-size="12" font-weight="600" text-anchor="middle">${formatMeters(legTotalM)}</text>`);
+    }
     // End support pole: drawn from ground up to its real height, at the wire-end's x position
     svgParts.push(`<line x1="${xCum}" y1="${groundY}" x2="${xCum}" y2="${endSupportTopY}" stroke="#8a9aa8" stroke-width="3" stroke-linecap="round"/>`);
     svgParts.push(`<circle cx="${xCum}" cy="${endSupportTopY}" r="4" fill="#fff"/>`);
